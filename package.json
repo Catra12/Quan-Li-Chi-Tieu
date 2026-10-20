@@ -1,0 +1,25 @@
+{
+  "name": "quan-li-chi-tieu",
+  "version": "1.0.0",
+  "description": "Ứng dụng Quản lý chi tiêu cá nhân - DevOps Project",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "node --watch src/app.js"
+  },
+  "keywords": [
+    "nodejs",
+    "express",
+    "mongoose",
+    "ejs",
+    "devops"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "mongoose": "^8.9.5"
+  }
+}
