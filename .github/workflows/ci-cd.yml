@@ -1,0 +1,37 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  ci-cd:
+    name: Build, Test & Deploy
+    runs-on: self-hosted
+
+    steps:
+      - name: "Bước 1: Checkout code"
+        uses: actions/checkout@v4
+
+      - name: "Bước 2: Build / Cài đặt thư viện"
+        run: npm ci
+
+      - name: "Bước 3: Chạy Automated Tests"
+        run: npm test
+
+      - name: "Bước 4: Tạo file .env từ GitHub Secrets"
+        run: |
+          echo "PORT=3000" > .env
+          echo "MONGO_URI=${{ secrets.MONGO_URI || 'mongodb://mongo:27017/quanlychitieu' }}" >> .env
+          echo "NODE_ENV=production" >> .env
+
+      - name: "Bước 5: Deploy tự động bằng Docker Compose"
+        run: |
+          docker compose up -d --build
+          docker image prune -f
+          sleep 5
+          curl -f http://localhost/health || curl -f http://127.0.0.1:3000/health

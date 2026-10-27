@@ -19,9 +19,15 @@ app.use(express.json());
 // Route kiểm tra trạng thái dịch vụ (Health Check cho DevOps)
 app.get('/health', (req, res) => {
   const isDbConnected = mongoose.connection.readyState === 1;
-  res.status(200).json({
-    status: 'UP',
-    database: isDbConnected ? 'CONNECTED' : 'DISCONNECTED'
+  if (isDbConnected) {
+    return res.status(200).json({
+      status: 'UP',
+      database: 'CONNECTED'
+    });
+  }
+  return res.status(503).json({
+    status: 'DOWN',
+    database: 'DISCONNECTED'
   });
 });
 
@@ -42,8 +48,8 @@ mongoose.connect(MONGO_URI)
     console.error(`❌ Lỗi kết nối MongoDB (${MONGO_URI}):`, err.message);
   });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server đang chạy tại http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server đang chạy tại http://0.0.0.0:${PORT}`);
   console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
 });
 

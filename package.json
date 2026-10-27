@@ -5,7 +5,8 @@
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
-    "dev": "node --watch src/app.js"
+    "dev": "node --watch src/app.js",
+    "test": "jest --runInBand --forceExit"
   },
   "keywords": [
     "nodejs",
@@ -21,5 +22,8 @@
     "ejs": "^3.1.10",
     "express": "^4.21.2",
     "mongoose": "^8.9.5"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
   }
 }
