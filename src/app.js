@@ -2,11 +2,31 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const path = require('path');
+const client = require('prom-client');
 const expenseRoutes = require('./routes/expenseRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/quanlychitieu';
+
+// --- Prometheus Metrics Configuration ---
+// Thu thập Default Metrics (CPU, RAM, Event Loop của Node.js)
+client.collectDefaultMetrics();
+
+// Histogram đo thời gian phản hồi của request HTTP
+const httpRequestDurationSeconds = new client.Histogram({
+  name: 'http_request_duration_seconds',
+  help: 'Duration of HTTP requests in seconds',
+  labelNames: ['method', 'route', 'status_code'],
+  buckets: [0.01, 0.05, 0.1, 0.3, 0.5, 1, 1.5, 2, 5]
+});
+
+// Counter đếm tổng số lượng request HTTP
+const httpRequestsTotal = new client.Counter({
+  name: 'http_requests_total',
+  help: 'Total number of HTTP requests',
+  labelNames: ['method', 'route', 'status_code']
+});
 
 // Cấu hình View Engine (EJS)
 app.set('view engine', 'ejs');
@@ -16,19 +36,64 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
+// Middleware: Structured Logging & Prometheus Metrics Collector
+app.use((req, res, next) => {
+  const start = process.hrtime();
+  const startTime = Date.now();
+
+  res.on('finish', () => {
+    // 1. Tính toán thời gian thực thi (ms) cho Structured Log
+    const durationMs = Date.now() - startTime;
+    const isoTimestamp = new Date().toISOString();
+    console.log(`[${isoTimestamp}] [INFO] ${req.method} ${req.originalUrl || req.url} ${res.statusCode} - ${durationMs} ms`);
+
+    // 2. Ghi nhận Prometheus Metrics
+    const diff = process.hrtime(start);
+    const durationSeconds = diff[0] + diff[1] / 1e9;
+    const route = req.route ? `${req.baseUrl || ''}${req.route.path}` : (req.baseUrl || req.path || 'unknown');
+    const labels = {
+      method: req.method,
+      route: route,
+      status_code: res.statusCode
+    };
+
+    httpRequestDurationSeconds.observe(labels, durationSeconds);
+    httpRequestsTotal.inc(labels);
+  });
+
+  next();
+});
+
 // Route kiểm tra trạng thái dịch vụ (Health Check cho DevOps)
 app.get('/health', (req, res) => {
   const isDbConnected = mongoose.connection.readyState === 1;
+  const timestamp = new Date().toISOString();
+
   if (isDbConnected) {
     return res.status(200).json({
       status: 'UP',
-      database: 'CONNECTED'
+      database: 'CONNECTED',
+      uptime: process.uptime(),
+      timestamp: timestamp
     });
   }
+
   return res.status(503).json({
     status: 'DOWN',
-    database: 'DISCONNECTED'
+    database: 'DISCONNECTED',
+    timestamp: timestamp
   });
+});
+
+// Route cung cấp metrics cho Prometheus scrape
+app.get('/metrics', async (req, res) => {
+  try {
+    res.set('Content-Type', client.register.contentType);
+    res.end(await client.register.metrics());
+  } catch (err) {
+    console.error('Lỗi khi xuất Prometheus metrics:', err);
+    res.status(500).end(err.message);
+  }
 });
 
 // Routes ứng dụng
@@ -51,6 +116,7 @@ mongoose.connect(MONGO_URI)
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server đang chạy tại http://0.0.0.0:${PORT}`);
   console.log(`🏥 Health Check: http://localhost:${PORT}/health`);
+  console.log(`📊 Prometheus Metrics: http://localhost:${PORT}/metrics`);
 });
 
 module.exports = app;
