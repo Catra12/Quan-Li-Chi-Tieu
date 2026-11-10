@@ -1,0 +1,43 @@
+groups:
+  - name: expense_tracker_alerts
+    rules:
+      # 1. Cảnh báo khi container ứng dụng bị sập
+      - alert: ExpenseAppDown
+        expr: up{job="expense-app"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Ứng dụng Expense Tracker bị ngừng hoạt động (Down)"
+          description: "Container 'expense-app' không phản hồi hoặc đã dừng hơn 30 giây."
+
+      # 2. Cảnh báo khi tỷ lệ lỗi HTTP 5xx vượt 5% trong 1 phút
+      - alert: HighHttpErrorRate
+        expr: (sum(rate(http_requests_total{status_code=~"5.."}[1m])) / sum(rate(http_requests_total[1m]))) * 100 > 5
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Tỷ lệ lỗi HTTP 5xx cao vượt ngưỡng (> 5%)"
+          description: "Tỷ lệ phản hồi HTTP 5xx của ứng dụng vượt quá 5% trong vòng 1 phút qua."
+
+      # 3. Cảnh báo khi thời gian phản hồi trung bình vượt quá 0.5s
+      - alert: HighResponseLatency
+        expr: (sum(rate(http_request_duration_seconds_sum{job="expense-app"}[1m])) / sum(rate(http_request_duration_seconds_count{job="expense-app"}[1m]))) > 0.5
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Độ trễ phản hồi HTTP cao (> 0.5s)"
+          description: "Thời gian phản hồi trung bình của ứng dụng vượt quá 0.5 giây trong 1 phút qua."
+
+      # 4. Cảnh báo khi dung lượng ổ cứng khả dụng dưới 15%
+      - alert: HostLowDiskSpace
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Dung lượng ổ cứng máy chủ sắp đầy (< 15%)"
+          description: "Dung lượng ổ cứng trống trên phân vùng root (/) của máy ảo host còn dưới 15%."
+

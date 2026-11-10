@@ -2,6 +2,9 @@ global:
   scrape_interval: 5s
   evaluation_interval: 5s
 
+rule_files:
+  - "alert_rules.yml"
+
 scrape_configs:
   # 1. Thu thập metrics của chính Prometheus Server
   - job_name: 'prometheus'
@@ -20,4 +23,3 @@ scrape_configs:
     scrape_interval: 5s
     static_configs:
       - targets: ['node-exporter:9100']
-
