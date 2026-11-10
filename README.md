@@ -187,7 +187,7 @@ Prometheus tự động đánh giá 4 luật cảnh báo theo chu kỳ 5 giây:
 
 ---
 
-## ⚡ 5. Kiểm Thử Tải (Load Testing) & Cron Backup Tự Động
+## 5. Kiểm Thử Tải (Load Testing) & Cron Backup Tự Động
 
 ### 5.1. Kiểm thử tải với `scripts/load-test.sh`
 Script tự động gửi **200 requests liên tục** vào ứng dụng để kiểm chứng Rate Limiter và sinh dữ liệu đồ thị trên Grafana:
